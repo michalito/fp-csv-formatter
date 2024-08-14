@@ -67,6 +67,50 @@ def process_csv(file_content, product_name, product_sku_base, default_price):
         return processed_data
     except Exception as e:
         raise Exception(f"Error processing CSV: {str(e)}")
+    
+def convert_to_variants_expert_format(file_content):
+    input_file = io.StringIO(file_content.decode('utf-8-sig'))
+    reader = csv.DictReader(input_file)
+    
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=[
+        'Entry Type', 'Entry Name', 'Item Group Name', 'Attribute 1 Name', 'Attribute 1 Option',
+        'Attribute 2 Name', 'Attribute 2 Option', 'Attribute 3 Name', 'Attribute 3 Option',
+        'Quantity', 'Unit', 'Min Level', 'Price', 'Notes', 'Tags', 'Primary Folder',
+        'Subfolder-level1', 'Subfolder-level2', 'Subfolder-level3', 'Subfolder-level4',
+        'Photo1', 'Photo2', 'Photo3', 'Photo4', 'Photo5', 'Photo6', 'Photo7', 'Photo8',
+        'Barcode/QR1-Data', 'Barcode/QR1-Type', 'Barcode/QR2-Data', 'Barcode/QR2-Type'
+    ])
+    writer.writeheader()
+
+    for row in reader:
+        product_name = row['Product']
+        color = row['Color']
+        size = row['Size']
+        quantity = row['Stock']
+        price = row['Price']
+        barcode = row['GTIN']
+
+        new_row = {
+            'Entry Type': 'Item',
+            'Entry Name': product_name,
+            'Item Group Name': product_name,
+            'Attribute 1 Name': 'Color',
+            'Attribute 1 Option': color,
+            'Attribute 2 Name': 'Size',
+            'Attribute 2 Option': size,
+            'Quantity': quantity,
+            'Unit': 'Unit',
+            'Min Level': '2',
+            'Price': price,
+            'Barcode/QR1-Data': '',
+            'Barcode/QR1-Type': '',
+            'Barcode/QR2-Data': barcode,
+            'Barcode/QR2-Type': 'org.iso.Code128' if barcode else ''
+        }
+        writer.writerow(new_row)
+
+    return output.getvalue()
 
 def generate_csv(processed_data):
     try:

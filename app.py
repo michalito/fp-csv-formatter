@@ -1,5 +1,5 @@
 from flask import Flask, request, send_file, render_template, jsonify
-from csv_processor import process_csv, generate_csv, get_initial_product_info
+from csv_processor import process_csv, generate_csv, get_initial_product_info, convert_to_variants_expert_format
 import io
 import traceback
 import logging
@@ -64,6 +64,35 @@ def process():
         return jsonify({'error': 'Missing required data'}), 400
     except Exception as e:
         app.logger.error(f"Unexpected error in process: {str(e)}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+
+@app.route('/convert_to_variants_expert', methods=['POST'])
+def convert_to_variants_expert():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part in the request'}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        if file:
+            file_content = file.read()
+            try:
+                variants_expert_csv = convert_to_variants_expert_format(file_content)
+                
+                return send_file(
+                    io.BytesIO(variants_expert_csv.encode()),
+                    mimetype='text/csv',
+                    as_attachment=True,
+                    attachment_filename='variants_expert_inventory.csv'
+                )
+            except Exception as e:
+                app.logger.error(f"Error converting to Variants Expert format: {str(e)}")
+                app.logger.error(traceback.format_exc())
+                return jsonify({'error': f'Error converting to Variants Expert format: {str(e)}'}), 400
+        return jsonify({'error': 'Invalid file'}), 400
+    except Exception as e:
+        app.logger.error(f"Unexpected error in convert_to_variants_expert: {str(e)}")
         app.logger.error(traceback.format_exc())
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
 
