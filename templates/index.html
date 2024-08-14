@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Processor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        input[type="file"], input[type="number"] {
+            display: block;
+            margin: 20px 0;
+            width: 100%;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV Processor</h1>
+        <input type="file" id="fileInput" accept=".csv">
+        <input type="number" id="defaultPrice" placeholder="Default Price" step="0.01" value="0">
+        <button onclick="processFile()">Process CSV</button>
+        <div id="errorMessage" class="error"></div>
+    </div>
+
+    <script>
+        async function processFile() {
+            const fileInput = document.getElementById('fileInput');
+            const defaultPrice = document.getElementById('defaultPrice');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = '';
+            
+            const file = fileInput.files[0];
+            if (!file) {
+                errorMessage.textContent = 'Please select a file';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await axios.post('/get_product_info', formData);
+                const { product_name, product_sku_base } = response.data;
+                
+                const confirmedName = prompt('Confirm or edit the product name:', product_name);
+                const confirmedSKU = prompt('Confirm or edit the product SKU base:', product_sku_base);
+                
+                if (confirmedName && confirmedSKU) {
+                    const processFormData = new FormData();
+                    processFormData.append('file', file);
+                    processFormData.append('product_name', confirmedName);
+                    processFormData.append('product_sku_base', confirmedSKU);
+                    processFormData.append('default_price', defaultPrice.value);
+                    
+                    const processResponse = await axios.post('/process', processFormData, { responseType: 'blob' });
+                    
+                    const url = window.URL.createObjectURL(new Blob([processResponse.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', 'processed_inventory.csv');
+                    document.body.appendChild(link);
+                    link.click();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (error.response && error.response.data && error.response.data.error) {
+                    errorMessage.textContent = `Error: ${error.response.data.error}`;
+                } else {
+                    errorMessage.textContent = 'An unexpected error occurred while processing the file';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
