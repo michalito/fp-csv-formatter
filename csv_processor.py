@@ -93,7 +93,7 @@ def convert_to_variants_expert_format(file_content):
 
         new_row = {
             'Entry Type': 'Item',
-            'Entry Name': product_name,
+            'Entry Name': f'{product_name} {color}',
             'Item Group Name': product_name,
             'Attribute 1 Name': 'Color',
             'Attribute 1 Option': color,
