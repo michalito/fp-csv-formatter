@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('product_name').value = data.product_name;
             document.getElementById('product_sku_base').value = data.product_sku_base;
             document.getElementById('default_price').value = '0'; // Set default price to 0
+            document.getElementById('brand').value = ''; // Initialize brand field
+            document.getElementById('gender').value = ''; // Initialize gender field
+            document.getElementById('suppliers').value = ''; // Initialize suppliers field
             modal.style.display = 'block';
         })
         .catch(error => {
@@ -37,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('product_name', document.getElementById('product_name').value);
         formData.append('product_sku_base', document.getElementById('product_sku_base').value);
         formData.append('default_price', document.getElementById('default_price').value);
+        formData.append('brand', document.getElementById('brand').value);
+        formData.append('gender', document.getElementById('gender').value);
+        formData.append('suppliers', document.getElementById('suppliers').value);
 
         fetch('/process', {
             method: 'POST',
@@ -66,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const formData = new FormData(this);
 
-        fetch('/convert_to_variants_expert', {
+        fetch('/convert_to_odoo', {
             method: 'POST',
             body: formData
         })
@@ -80,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'variants_expert_inventory.csv';
+            a.download = 'odoo_inventory.csv';
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);

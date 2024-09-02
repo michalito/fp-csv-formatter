@@ -1,5 +1,5 @@
 from flask import Flask, request, send_file, render_template, jsonify
-from csv_processor import process_csv, generate_csv, get_initial_product_info, convert_to_variants_expert_format
+from csv_processor import process_csv, generate_csv, get_initial_product_info, convert_to_odoo
 import io
 import traceback
 import logging
@@ -43,11 +43,14 @@ def process():
         product_name = request.form.get('product_name')
         product_sku_base = request.form.get('product_sku_base')
         default_price = request.form.get('default_price', '0')
+        brand = request.form.get('brand', '')
+        gender = request.form.get('gender', '')
+        suppliers = request.form.get('suppliers', '')
         
         if file and product_name and product_sku_base:
             file_content = file.read()
             try:
-                processed_data = process_csv(file_content, product_name, product_sku_base, default_price)
+                processed_data = process_csv(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers)
                 output_csv = generate_csv(processed_data)
                 
                 return send_file(
@@ -67,8 +70,8 @@ def process():
         app.logger.error(traceback.format_exc())
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
 
-@app.route('/convert_to_variants_expert', methods=['POST'])
-def convert_to_variants_expert():
+@app.route('/convert_to_odoo', methods=['POST'])
+def convert_to_odoo_route():
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file part in the request'}), 400
@@ -78,21 +81,21 @@ def convert_to_variants_expert():
         if file:
             file_content = file.read()
             try:
-                variants_expert_csv = convert_to_variants_expert_format(file_content)
+                odoo_csv = convert_to_odoo(file_content)
                 
                 return send_file(
-                    io.BytesIO(variants_expert_csv.encode()),
+                    io.BytesIO(odoo_csv.encode()),
                     mimetype='text/csv',
                     as_attachment=True,
-                    attachment_filename='variants_expert_inventory.csv'
+                    attachment_filename='odoo_inventory.csv'
                 )
             except Exception as e:
-                app.logger.error(f"Error converting to Variants Expert format: {str(e)}")
+                app.logger.error(f"Error converting to Odoo format: {str(e)}")
                 app.logger.error(traceback.format_exc())
-                return jsonify({'error': f'Error converting to Variants Expert format: {str(e)}'}), 400
+                return jsonify({'error': f'Error converting to Odoo format: {str(e)}'}), 400
         return jsonify({'error': 'Invalid file'}), 400
     except Exception as e:
-        app.logger.error(f"Unexpected error in convert_to_variants_expert: {str(e)}")
+        app.logger.error(f"Unexpected error in convert_to_odoo: {str(e)}")
         app.logger.error(traceback.format_exc())
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
 

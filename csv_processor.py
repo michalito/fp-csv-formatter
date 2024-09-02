@@ -2,7 +2,7 @@ import csv
 import io
 import re
 
-def process_csv(file_content, product_name, product_sku_base, default_price):
+def process_csv(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers):
     try:
         reader = csv.DictReader(io.StringIO(file_content.decode('utf-8-sig')))
         processed_data = {}
@@ -26,6 +26,9 @@ def process_csv(file_content, product_name, product_sku_base, default_price):
                     processed_data[current_product] = {
                         'Product': product_name,
                         'Color': color,
+                        'Brand': brand,
+                        'Gender': gender,
+                        'Suppliers': suppliers,
                         'Items': {}
                     }
             else:
@@ -68,18 +71,16 @@ def process_csv(file_content, product_name, product_sku_base, default_price):
     except Exception as e:
         raise Exception(f"Error processing CSV: {str(e)}")
     
-def convert_to_variants_expert_format(file_content):
+def convert_to_odoo(file_content):
     input_file = io.StringIO(file_content.decode('utf-8-sig'))
     reader = csv.DictReader(input_file)
     
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=[
-        'Entry Type', 'Entry Name', 'Item Group Name', 'Attribute 1 Name', 'Attribute 1 Option',
-        'Attribute 2 Name', 'Attribute 2 Option', 'Attribute 3 Name', 'Attribute 3 Option',
-        'Quantity', 'Unit', 'Min Level', 'Price', 'Notes', 'Tags', 'Primary Folder',
-        'Subfolder-level1', 'Subfolder-level2', 'Subfolder-level3', 'Subfolder-level4',
-        'Photo1', 'Photo2', 'Photo3', 'Photo4', 'Photo5', 'Photo6', 'Photo7', 'Photo8',
-        'Barcode/QR1-Data', 'Barcode/QR1-Type', 'Barcode/QR2-Data', 'Barcode/QR2-Type'
+        'External_ID', 'base_sku', 'Internal Reference', 'Name', 'Product Category (External_ID)',
+        'Barcode', 'Supplier Product Code', 'Published', 'Color', 'Size', 'Sales Price', 'Cost',
+        'Weight', 'Package Length (cm)', 'Package Width (cm)', 'Package Height (cm)', 'Brand',
+        'Gender', 'Suppliers', 'Primary Supplier', 'Description'
     ])
     writer.writeheader()
 
@@ -87,26 +88,38 @@ def convert_to_variants_expert_format(file_content):
         product_name = row['Product']
         color = row['Color']
         size = row['Size']
-        quantity = row['Stock']
+        sku = row['Item SKU']
+        stock = row['Stock']
         price = row['Price']
         barcode = row['GTIN']
+        mpn = row['MPN']
+        status = row['Status']
+
+        base_sku = sku.rsplit('-', 2)[0]
+        external_id = f"product_{sku.replace('-', '_')}"
 
         new_row = {
-            'Entry Type': 'Item',
-            'Entry Name': f'{product_name} {color}',
-            'Item Group Name': product_name,
-            'Attribute 1 Name': 'Color',
-            'Attribute 1 Option': color,
-            'Attribute 2 Name': 'Size',
-            'Attribute 2 Option': size,
-            'Quantity': quantity,
-            'Unit': 'Unit',
-            'Min Level': '2',
-            'Price': price,
-            'Barcode/QR1-Data': '',
-            'Barcode/QR1-Type': '',
-            'Barcode/QR2-Data': barcode,
-            'Barcode/QR2-Type': 'org.iso.Code128' if barcode else ''
+            'External_ID': external_id,
+            'base_sku': base_sku,
+            'Internal Reference': sku,
+            'Name': f"{product_name} - {color} ({size})",
+            'Product Category (External_ID)': 'category_apparel',  # You may want to implement a mapping for this
+            'Barcode': barcode,
+            'Supplier Product Code': mpn,
+            'Published': '1' if status.lower() == 'active' else '0',
+            'Color': color,
+            'Size': size,
+            'Sales Price': price,
+            'Cost': '',  # You may want to add this information to your input CSV
+            'Weight': '',  # You may want to add this information to your input CSV
+            'Package Length (cm)': '',  # You may want to add this information to your input CSV
+            'Package Width (cm)': '',  # You may want to add this information to your input CSV
+            'Package Height (cm)': '',  # You may want to add this information to your input CSV
+            'Brand': '',  # You may want to add this information to your input CSV
+            'Gender': '',  # You may want to add this information to your input CSV
+            'Suppliers': '',  # You may want to add this information to your input CSV
+            'Primary Supplier': '',  # You may want to add this information to your input CSV
+            'Description': ''  # You may want to add this information to your input CSV
         }
         writer.writerow(new_row)
 
@@ -117,11 +130,14 @@ def generate_csv(processed_data):
         output = io.StringIO()
         writer = csv.writer(output)
         
-        writer.writerow(['Product', 'Item', 'Item SKU', 'Color', 'Size', 'Stock', 'MPN', 'GTIN', 'Price', 'Status'])
+        writer.writerow(['Product', 'Item', 'Item SKU', 'Color', 'Size', 'Stock', 'MPN', 'GTIN', 'Price', 'Status', 'Brand', 'Gender', 'Suppliers'])
         
         for product_sku, product_data in processed_data.items():
             product = product_data['Product']
             color = product_data['Color']
+            brand = product_data['Brand']
+            gender = product_data['Gender']
+            suppliers = product_data['Suppliers']
             for item_sku, item_data in product_data['Items'].items():
                 item = f"{product} {color} {item_data['Size']}"
                 writer.writerow([
@@ -134,7 +150,10 @@ def generate_csv(processed_data):
                     item_data['MPN'],
                     item_data['GTIN'],
                     item_data['Price'],
-                    item_data['Status']
+                    item_data['Status'],
+                    brand,
+                    gender,
+                    suppliers
                 ])
         
         return output.getvalue()

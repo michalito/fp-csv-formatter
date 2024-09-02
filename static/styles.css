@@ -1,22 +1,23 @@
 body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
     padding: 20px;
+    background-color: #f4f4f4;
 }
 
 h1, h2 {
-    color: #333;
-}
-
-.error {
-    color: red;
+    color: #2c3e50;
 }
 
 .section {
-    margin-bottom: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
     padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
 }
 
 form {
@@ -25,21 +26,32 @@ form {
 
 input[type="file"],
 input[type="text"],
+input[type="number"],
+select,
 button {
+    width: 100%;
+    padding: 10px;
     margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
 }
 
 button {
-    padding: 5px 10px;
-    background-color: #4CAF50;
+    background-color: #3498db;
     color: white;
     border: none;
-    border-radius: 3px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: #2980b9;
+}
+
+.error {
+    color: #e74c3c;
+    margin-top: 10px;
 }
 
 .modal {
@@ -61,10 +73,13 @@ button:hover {
     border: 1px solid #888;
     width: 80%;
     max-width: 500px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .modal-content h2 {
     margin-top: 0;
+    color: #2c3e50;
 }
 
 .modal-content form {
@@ -74,8 +89,21 @@ button:hover {
 
 .modal-content label {
     margin-top: 10px;
+    color: #34495e;
 }
 
-.modal-content input {
+.modal-content input,
+.modal-content select {
     margin-bottom: 15px;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
 }
