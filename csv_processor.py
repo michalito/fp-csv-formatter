@@ -84,6 +84,9 @@ def convert_to_odoo(file_content):
     writer.writeheader()
 
     for row in reader:
+        if int(row['Stock']) == 0:
+            continue
+
         product_name = row['Product']
         color = row['Color']
         size = row['Size']
