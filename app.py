@@ -5,7 +5,15 @@ import traceback
 import logging
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 @app.route('/', methods=['GET'])
 def index():
@@ -57,7 +65,7 @@ def process():
                     io.BytesIO(output_csv.encode()),
                     mimetype='text/csv',
                     as_attachment=True,
-                    attachment_filename='processed_inventory.csv'
+                    download_name='processed_inventory.csv'
                 )
             except Exception as e:
                 app.logger.error(f"Error processing CSV: {str(e)}")
@@ -87,7 +95,7 @@ def convert_to_odoo_route():
                     io.BytesIO(odoo_csv.encode()),
                     mimetype='text/csv',
                     as_attachment=True,
-                    attachment_filename='odoo_inventory.csv'
+                    download_name='odoo_inventory.csv'
                 )
             except Exception as e:
                 app.logger.error(f"Error converting to Odoo format: {str(e)}")

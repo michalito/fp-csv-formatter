@@ -17,7 +17,6 @@ def process_csv(file_content, product_name, product_sku_base, default_price, bra
             # Check if this is a product row or an item row
             if not any(size in product_sku for size in ['XS', 'SM', 'ME', 'LA', 'XL']):
                 # This is a product row
-                product_name = row['Product Name'].split()[0]
                 color = ' '.join(row['Product Name'].split()[1:])
                 current_product = product_sku
                 current_price = row['Price'].replace('€', '').strip()
@@ -94,6 +93,9 @@ def convert_to_odoo(file_content):
         barcode = row['GTIN']
         mpn = row['MPN']
         status = row['Status']
+        brand = row['Brand']
+        gender = row['Gender']
+        suppliers = row['Suppliers']
 
         base_sku = sku.rsplit('-', 2)[0]
         external_id = f"product_{sku.replace('-', '_')}"
@@ -115,10 +117,10 @@ def convert_to_odoo(file_content):
             'Package Length (cm)': '',  # You may want to add this information to your input CSV
             'Package Width (cm)': '',  # You may want to add this information to your input CSV
             'Package Height (cm)': '',  # You may want to add this information to your input CSV
-            'Brand': '',  # You may want to add this information to your input CSV
-            'Gender': '',  # You may want to add this information to your input CSV
-            'Suppliers': '',  # You may want to add this information to your input CSV
-            'Primary Supplier': '',  # You may want to add this information to your input CSV
+            'Brand': brand,
+            'Gender': gender,
+            'Suppliers': suppliers,
+            'Primary Supplier': suppliers,  # maybe update if in the future need more than one
             'Description': ''  # You may want to add this information to your input CSV
         }
         writer.writerow(new_row)

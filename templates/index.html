@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>CSV Processor</h1>
+    <h1>Old Excel CSV Processor</h1>
 
     <div class="section">
         <h2>Process CSV</h2>
@@ -19,7 +19,7 @@
     </div>
 
     <div class="section">
-        <h2>Convert to Odoo Format</h2>
+        <h2>Generate Odoo Products Import (from processed_inventory)</h2>
         <form id="convertForm" enctype="multipart/form-data">
             <input type="file" name="file" accept=".csv" required>
             <button type="submit">Convert to Odoo</button>
@@ -41,7 +41,12 @@
                 <input type="number" id="default_price" name="default_price" step="0.01" required>
 
                 <label for="brand">Brand:</label>
-                <input type="text" id="brand" name="brand">
+                <select id="brand" name="brand">
+                    <option value="">Select Brand</option>
+                    <option value="Tavi">Tavi</option>
+                    <option value="Toesox">Toesox</option>
+                    <option value="SISSEL">SISSEL</option>
+                </select>
 
                 <label for="gender">Gender:</label>
                 <select id="gender" name="gender">
@@ -52,7 +57,11 @@
                 </select>
 
                 <label for="suppliers">Suppliers:</label>
-                <input type="text" id="suppliers" name="suppliers">
+                <select id="suppliers" name="suppliers">
+                    <option value="">Select Supplier</option>
+                    <option value="Thirty Three Threads">Thirty Three Threads</option>
+                    <option value="SISSEL">SISSEL</option>
+                </select>
 
                 <button type="submit">Confirm</button>
             </form>

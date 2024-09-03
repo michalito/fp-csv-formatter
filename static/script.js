@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.style.display = 'none';
         
         const formData = new FormData(processForm);
-        formData.append('product_name', document.getElementById('product_name').value);
-        formData.append('product_sku_base', document.getElementById('product_sku_base').value);
-        formData.append('default_price', document.getElementById('default_price').value);
-        formData.append('brand', document.getElementById('brand').value);
-        formData.append('gender', document.getElementById('gender').value);
-        formData.append('suppliers', document.getElementById('suppliers').value);
-
+        formData.set('product_name', document.getElementById('product_name').value);
+        formData.set('product_sku_base', document.getElementById('product_sku_base').value);
+        formData.set('default_price', document.getElementById('default_price').value);
+        formData.set('brand', document.getElementById('brand').value);
+        formData.set('gender', document.getElementById('gender').value);
+        formData.set('suppliers', document.getElementById('suppliers').value);
+    
         fetch('/process', {
             method: 'POST',
             body: formData
