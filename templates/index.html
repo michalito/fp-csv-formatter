@@ -25,7 +25,7 @@
         <h2>Generate Odoo Products Import (from processed_inventory)</h2>
         <form id="convertForm" enctype="multipart/form-data">
             <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
-            <button type="submit">Convert to Odoo</button>
+            <button type="button" id="generateOdooButton">Generate Odoo Import</button>
         </form>
         <div id="convertErrorMessage" class="error"></div>
     </div>
@@ -67,6 +67,24 @@
                 </select>
                 
                 <button type="submit">Confirm</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <h3>Enter Product Category Information</h3>
+            <form id="categoryForm">
+                <label for="primaryCategory">Primary Category:</label>
+                <input type="text" id="primaryCategory" name="primaryCategory" required>
+                
+                <label for="secondaryCategory">Secondary Category:</label>
+                <input type="text" id="secondaryCategory" name="secondaryCategory">
+                
+                <label for="tertiaryCategory">Tertiary Category:</label>
+                <input type="text" id="tertiaryCategory" name="tertiaryCategory">
+                
+                <button type="submit">Submit and Generate Odoo Import</button>
             </form>
         </div>
     </div>

@@ -104,7 +104,7 @@ def process_data(reader, product_name, product_sku_base, default_price, brand, g
     except Exception as e:
         raise Exception(f"Error processing data: {str(e)}")
     
-def convert_to_odoo(file_content, file_type):
+def convert_to_odoo(file_content, file_type, primary_category='', secondary_category='', tertiary_category=''):
     if file_type == 'csv':
         input_file = io.StringIO(file_content.decode('utf-8-sig'))
         reader = csv.DictReader(input_file)
@@ -125,6 +125,13 @@ def convert_to_odoo(file_content, file_type):
         'Gender', 'Suppliers', 'Primary Supplier', 'Description'
     ])
     writer.writeheader()
+
+    # Construct the category external ID
+    category_external_id = f"category_{primary_category.lower()}"
+    if secondary_category:
+        category_external_id += f"_{secondary_category.lower()}"
+    if tertiary_category:
+        category_external_id += f"_{tertiary_category.lower()}"
 
     for row in reader:
         if int(row['Stock']) == 0:
@@ -150,7 +157,7 @@ def convert_to_odoo(file_content, file_type):
             'base_sku': base_sku,
             'Internal Reference': sku,
             'Name': f"{product_name} - {color} ({size})",
-            'Product Category (External_ID)': 'category_apparel',  # You may want to implement a mapping for this
+            'Product Category (External_ID)': category_external_id,
             'Barcode': barcode,
             'Supplier Product Code': mpn,
             'Published': '1' if status.lower() == 'active' else '0',

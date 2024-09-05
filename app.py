@@ -144,6 +144,10 @@ def process():
 
 @app.route('/convert_to_odoo', methods=['POST'])
 def convert_to_odoo_route():
+    primary_category = request.form.get('primaryCategory', '')
+    secondary_category = request.form.get('secondaryCategory', '')
+    tertiary_category = request.form.get('tertiaryCategory', '')
+
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file part in the request'}), 400
@@ -156,7 +160,7 @@ def convert_to_odoo_route():
             if file_type not in ['csv', 'xlsx']:
                 return jsonify({'error': 'Unsupported file type'}), 400
             try:
-                odoo_csv = convert_to_odoo(file_content, file_type)
+                odoo_csv = convert_to_odoo(file_content, file_type, primary_category, secondary_category, tertiary_category)
                 
                 return send_file(
                     io.BytesIO(odoo_csv.encode()),

@@ -143,10 +143,65 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+
+
     // Close the modal if the user clicks outside of it
     window.onclick = function(event) {
         if (event.target == modal) {
             modal.style.display = "none";
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const convertForm = document.getElementById('convertForm');
+    const generateOdooButton = document.getElementById('generateOdooButton');
+    const categoryModal = document.getElementById('categoryModal');
+    const categoryForm = document.getElementById('categoryForm');
+    const convertErrorMessage = document.getElementById('convertErrorMessage');
+
+    generateOdooButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        categoryModal.style.display = 'block';
+    });
+
+    categoryForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(convertForm);
+        formData.append('primaryCategory', document.getElementById('primaryCategory').value);
+        formData.append('secondaryCategory', document.getElementById('secondaryCategory').value);
+        formData.append('tertiaryCategory', document.getElementById('tertiaryCategory').value);
+
+        fetch('/convert_to_odoo', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err; });
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'odoo_inventory.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            categoryModal.style.display = 'none';
+        })
+        .catch(error => {
+            convertErrorMessage.textContent = error.error || 'An error occurred';
+            categoryModal.style.display = 'none';
+        });
+    });
+
+    // Close the modal if the user clicks outside of it
+    window.onclick = function(event) {
+        if (event.target == categoryModal) {
+            categoryModal.style.display = "none";
         }
     }
 });
