@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Processor</title>
+    <title>Excel/CSV Processor</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Old Excel CSV Processor</h1>
+    <h1>Excel/CSV Processor</h1>
 
     <div class="section">
-        <h2>Process CSV</h2>
+        <h2>Process Excel/CSV</h2>
         <form id="processForm" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".csv" required>
-            <button type="submit">Process CSV</button>
+            <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+            <select id="sheetSelect" name="sheet_name" style="display: none;">
+                <option value="">Select a sheet</option>
+            </select>
+            <button type="submit">Process</button>
         </form>
         <div id="errorMessage" class="error"></div>
     </div>
@@ -21,7 +24,7 @@
     <div class="section">
         <h2>Generate Odoo Products Import (from processed_inventory)</h2>
         <form id="convertForm" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".csv" required>
+            <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
             <button type="submit">Convert to Odoo</button>
         </form>
         <div id="convertErrorMessage" class="error"></div>
@@ -33,36 +36,36 @@
             <form id="confirmForm">
                 <label for="product_name">Product Name:</label>
                 <input type="text" id="product_name" name="product_name" required>
-
+                
                 <label for="product_sku_base">Product SKU Base:</label>
                 <input type="text" id="product_sku_base" name="product_sku_base" required>
-
+                
                 <label for="default_price">Default Price:</label>
-                <input type="number" id="default_price" name="default_price" step="0.01" required>
-
+                <input type="number" id="default_price" name="default_price" value="0" step="0.01" required>
+                
                 <label for="brand">Brand:</label>
-                <select id="brand" name="brand">
+                <select id="brand" name="brand" required>
                     <option value="">Select Brand</option>
                     <option value="Tavi">Tavi</option>
                     <option value="Toesox">Toesox</option>
                     <option value="SISSEL">SISSEL</option>
                 </select>
-
+                
                 <label for="gender">Gender:</label>
-                <select id="gender" name="gender">
+                <select id="gender" name="gender" required>
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Unisex">Unisex</option>
                 </select>
-
+                
                 <label for="suppliers">Suppliers:</label>
-                <select id="suppliers" name="suppliers">
+                <select id="suppliers" name="suppliers" required>
                     <option value="">Select Supplier</option>
                     <option value="Thirty Three Threads">Thirty Three Threads</option>
                     <option value="SISSEL">SISSEL</option>
                 </select>
-
+                
                 <button type="submit">Confirm</button>
             </form>
         </div>

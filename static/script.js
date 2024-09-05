@@ -5,9 +5,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const convertErrorMessage = document.getElementById('convertErrorMessage');
     const modal = document.getElementById('modal');
     const confirmForm = document.getElementById('confirmForm');
+    const fileInput = processForm.querySelector('input[type="file"]');
+    const sheetSelect = document.getElementById('sheetSelect');
+
+    function displayError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
+
+    function clearError() {
+        errorMessage.textContent = '';
+        errorMessage.style.display = 'none';
+    }
+
+    fileInput.addEventListener('change', function(e) {
+        clearError();
+        const file = e.target.files[0];
+        if (file && file.name.match(/\.(xlsx|xls)$/)) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/get_excel_sheets', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                sheetSelect.innerHTML = '<option value="">Select a sheet</option>';
+                data.sheets.forEach(sheet => {
+                    const option = document.createElement('option');
+                    option.value = sheet;
+                    option.textContent = sheet;
+                    sheetSelect.appendChild(option);
+                });
+                sheetSelect.style.display = 'block';
+            })
+            .catch(error => {
+                displayError(error.message || 'An error occurred while processing the Excel file');
+                sheetSelect.style.display = 'none';
+            });
+        } else {
+            sheetSelect.style.display = 'none';
+        }
+    });
 
     processForm.addEventListener('submit', function(e) {
         e.preventDefault();
+        clearError();
         const formData = new FormData(this);
 
         fetch('/get_product_info', {
@@ -28,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.style.display = 'block';
         })
         .catch(error => {
-            errorMessage.textContent = error.message || 'An error occurred';
+            displayError(error.message || 'An error occurred while processing the file');
         });
     });
 

@@ -1,10 +1,44 @@
 import csv
 import io
 import re
+import traceback
+from openpyxl import load_workbook
 
-def process_csv(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers):
+
+def process_file(file_content, file_type, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name=None):
     try:
-        reader = csv.DictReader(io.StringIO(file_content.decode('utf-8-sig')))
+        if file_type == 'csv':
+            return process_csv(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers)
+        elif file_type == 'xlsx':
+            return process_excel(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name)
+        else:
+            raise ValueError(f"Unsupported file type: {file_type}")
+    except Exception as e:
+        print(f"Error in process_file: {str(e)}")
+        traceback.print_exc()
+        raise
+    
+def process_csv(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers):
+    reader = csv.DictReader(io.StringIO(file_content.decode('utf-8-sig')))
+    return process_data(reader, product_name, product_sku_base, default_price, brand, gender, suppliers)
+
+def process_excel(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name=None):
+    wb = load_workbook(filename=io.BytesIO(file_content))
+    
+    if sheet_name:
+        if sheet_name not in wb.sheetnames:
+            raise ValueError(f"Sheet '{sheet_name}' not found in the workbook")
+        ws = wb[sheet_name]
+    else:
+        ws = wb.active
+    
+    rows = list(ws.iter_rows(values_only=True))
+    header = rows[0]
+    reader = [dict(zip(header, row)) for row in rows[1:]]
+    return process_data(reader, product_name, product_sku_base, default_price, brand, gender, suppliers)
+
+def process_data(reader, product_name, product_sku_base, default_price, brand, gender, suppliers):
+    try:
         processed_data = {}
         current_product = None
         current_price = None
@@ -68,11 +102,20 @@ def process_csv(file_content, product_name, product_sku_base, default_price, bra
         
         return processed_data
     except Exception as e:
-        raise Exception(f"Error processing CSV: {str(e)}")
+        raise Exception(f"Error processing data: {str(e)}")
     
-def convert_to_odoo(file_content):
-    input_file = io.StringIO(file_content.decode('utf-8-sig'))
-    reader = csv.DictReader(input_file)
+def convert_to_odoo(file_content, file_type):
+    if file_type == 'csv':
+        input_file = io.StringIO(file_content.decode('utf-8-sig'))
+        reader = csv.DictReader(input_file)
+    elif file_type == 'xlsx':
+        wb = load_workbook(filename=io.BytesIO(file_content))
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        header = rows[0]
+        reader = [dict(zip(header, row)) for row in rows[1:]]
+    else:
+        raise ValueError("Unsupported file type")
     
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=[
@@ -91,7 +134,6 @@ def convert_to_odoo(file_content):
         color = row['Color']
         size = row['Size']
         sku = row['Item SKU']
-        stock = row['Stock']
         price = row['Price']
         barcode = row['GTIN']
         mpn = row['MPN']
@@ -164,8 +206,20 @@ def generate_csv(processed_data):
         return output.getvalue()
     except Exception as e:
         raise Exception(f"Error generating CSV: {str(e)}")
+    
+def get_excel_sheet_names(file_content):
+    wb = load_workbook(filename=io.BytesIO(file_content))
+    return wb.sheetnames
 
-def get_initial_product_info(file_content):
+def get_initial_product_info(file_content, file_type, sheet_name=None):
+    if file_type == 'csv':
+        return get_initial_product_info_csv(file_content)
+    elif file_type == 'xlsx':
+        return get_initial_product_info_excel(file_content, sheet_name)
+    else:
+        raise ValueError("Unsupported file type")
+
+def get_initial_product_info_csv(file_content):
     try:
         reader = csv.DictReader(io.StringIO(file_content.decode('utf-8-sig')))
         first_row = next(reader)
@@ -173,4 +227,25 @@ def get_initial_product_info(file_content):
         product_sku_base = first_row['Product SKU'].split('-')[0]
         return product_name, product_sku_base
     except Exception as e:
-        raise Exception(f"Error getting initial product info: {str(e)}")
+        raise Exception(f"Error getting initial product info from CSV: {str(e)}")
+
+def get_initial_product_info_excel(file_content, sheet_name=None):
+    try:
+        wb = load_workbook(filename=io.BytesIO(file_content))
+        if sheet_name:
+            if sheet_name not in wb.sheetnames:
+                raise ValueError(f"Sheet '{sheet_name}' not found in the workbook")
+            ws = wb[sheet_name]
+        else:
+            ws = wb.active
+        
+        first_row = next(ws.iter_rows(values_only=True))
+        header = first_row
+        data_row = next(ws.iter_rows(values_only=True))
+        first_row_dict = dict(zip(header, data_row))
+        
+        product_name = first_row_dict['Product Name'].split()[0]
+        product_sku_base = first_row_dict['Product SKU'].split('-')[0]
+        return product_name, product_sku_base
+    except Exception as e:
+        raise Exception(f"Error getting initial product info from Excel: {str(e)}")
