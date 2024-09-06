@@ -5,6 +5,16 @@ import traceback
 from openpyxl import load_workbook
 
 
+# Input size map (unchanged)
+INPUT_SIZE_MAP = {'XS': 'XSmall', 'SM': 'Small', 'ME': 'Medium', 'LA': 'Large', 'XL': 'X Large'}
+
+# Output size map (new)
+OUTPUT_SIZE_MAP = {'XS': 'XSmall', 'SM': 'Small', 'MD': 'Medium', 'LG': 'Large', 'XL': 'XLarge'}
+
+# Reverse map for converting full size to short code
+REVERSE_OUTPUT_SIZE_MAP = {v: k for k, v in OUTPUT_SIZE_MAP.items()}
+
+
 def process_file(file_content, file_type, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name=None):
     try:
         if file_type == 'csv':
@@ -43,13 +53,11 @@ def process_data(reader, product_name, product_sku_base, default_price, brand, g
         current_product = None
         current_price = None
         
-        size_map = {'XS': 'XSmall', 'SM': 'Small', 'ME': 'Medium', 'LA': 'Large', 'XL': 'X Large'}
-        
         for row in reader:
             product_sku = row['Product SKU']
             
             # Check if this is a product row or an item row
-            if not any(size in product_sku for size in ['XS', 'SM', 'ME', 'LA', 'XL']):
+            if not any(size in product_sku for size in INPUT_SIZE_MAP.keys()):
                 # This is a product row
                 color = ' '.join(row['Product Name'].split()[1:])
                 current_product = product_sku
@@ -68,14 +76,18 @@ def process_data(reader, product_name, product_sku_base, default_price, brand, g
                 # This is an item row
                 size_identifier = product_sku.split('-')[-1]
                 full_size = re.search(r'\[S\]Size=(.*?)(?=\s|$)', row['Product Name']).group(1)
-                size = size_map.get(size_identifier, full_size.split()[0])
+                input_size = INPUT_SIZE_MAP.get(size_identifier, full_size.split()[0])
+                
+                # Convert input size to output size
+                output_size_identifier = REVERSE_OUTPUT_SIZE_MAP.get(input_size, size_identifier)
+                output_full_size = OUTPUT_SIZE_MAP.get(output_size_identifier, input_size)
                 
                 color_identifier = row['MPN'][-3:]
-                item_sku = f"{product_sku_base}-{color_identifier}-{size_identifier}"
+                item_sku = f"{product_sku_base}-{color_identifier}-{output_size_identifier}"
                 
                 processed_data[current_product]['Items'][item_sku] = {
-                    'Size': size_identifier,
-                    'FullSize': size,
+                    'Size': output_size_identifier,
+                    'FullSize': output_full_size,
                     'Stock': row['Stock'] or '0',
                     'MPN': row['MPN'],
                     'GTIN': row['GTIN'] or '',
@@ -84,7 +96,7 @@ def process_data(reader, product_name, product_sku_base, default_price, brand, g
                 }
         
         # Ensure all sizes are present for each product
-        all_sizes = ['XS', 'SM', 'ME', 'LA', 'XL']
+        all_sizes = list(OUTPUT_SIZE_MAP.keys())
         for product_sku, product_data in processed_data.items():
             color_identifier = next(iter(product_data['Items'].values()))['MPN'][-3:]
             for size in all_sizes:
@@ -92,7 +104,7 @@ def process_data(reader, product_name, product_sku_base, default_price, brand, g
                 if item_sku not in product_data['Items']:
                     product_data['Items'][item_sku] = {
                         'Size': size,
-                        'FullSize': size_map[size],
+                        'FullSize': OUTPUT_SIZE_MAP[size],
                         'Stock': '0',
                         'MPN': '',
                         'GTIN': '',
@@ -213,7 +225,7 @@ def generate_csv(processed_data):
         return output.getvalue()
     except Exception as e:
         raise Exception(f"Error generating CSV: {str(e)}")
-    
+
 def get_excel_sheet_names(file_content):
     wb = load_workbook(filename=io.BytesIO(file_content))
     return wb.sheetnames
