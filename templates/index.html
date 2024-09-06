@@ -16,6 +16,10 @@
             <select id="sheetSelect" name="sheet_name" style="display: none;">
                 <option value="">Select a sheet</option>
             </select>
+            <select id="outputFormat" name="output_format">
+                <option value="csv">CSV</option>
+                <option value="xlsx">XLSX</option>
+            </select>
             <button type="submit">Process</button>
         </form>
         <div id="errorMessage" class="error"></div>
@@ -25,6 +29,10 @@
         <h2>Generate Odoo Products Import (from processed_inventory)</h2>
         <form id="convertForm" enctype="multipart/form-data">
             <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+            <select id="convertOutputFormat" name="output_format">
+                <option value="csv">CSV</option>
+                <option value="xlsx">XLSX</option>
+            </select>
             <button type="button" id="generateOdooButton">Generate Odoo Import</button>
         </form>
         <div id="convertErrorMessage" class="error"></div>

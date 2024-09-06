@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmForm = document.getElementById('confirmForm');
     const fileInput = processForm.querySelector('input[type="file"]');
     const sheetSelect = document.getElementById('sheetSelect');
+    const outputFormatSelect = document.getElementById('outputFormat');
+    const convertOutputFormatSelect = document.getElementById('convertOutputFormat');
 
     function displayError(message) {
         errorMessage.textContent = message;
@@ -68,10 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             document.getElementById('product_name').value = data.product_name;
             document.getElementById('product_sku_base').value = data.product_sku_base;
-            document.getElementById('default_price').value = '0'; // Set default price to 0
-            document.getElementById('brand').value = ''; // Initialize brand field
-            document.getElementById('gender').value = ''; // Initialize gender field
-            document.getElementById('suppliers').value = ''; // Initialize suppliers field
+            document.getElementById('default_price').value = '0';
+            document.getElementById('brand').value = '';
+            document.getElementById('gender').value = '';
+            document.getElementById('suppliers').value = '';
             modal.style.display = 'block';
         })
         .catch(error => {
@@ -94,6 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.set('brand', document.getElementById('brand').value);
         formData.set('gender', document.getElementById('gender').value);
         formData.set('suppliers', document.getElementById('suppliers').value);
+        formData.append('output_format', outputFormatSelect.value);
     
         fetch('/process', {
             method: 'POST',
@@ -109,7 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'processed_inventory.csv';
+            const fileExtension = outputFormatSelect.value === 'xlsx' ? 'xlsx' : 'csv';
+            a.download = `processed_inventory.${fileExtension}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -122,6 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
     convertForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const formData = new FormData(this);
+        formData.append('output_format', convertOutputFormatSelect.value);
 
         fetch('/convert_to_odoo', {
             method: 'POST',
@@ -137,7 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'odoo_inventory.csv';
+            const fileExtension = convertOutputFormatSelect.value === 'xlsx' ? 'xlsx' : 'csv';
+            a.download = `odoo_inventory.${fileExtension}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -147,22 +153,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-
-
     // Close the modal if the user clicks outside of it
     window.onclick = function(event) {
         if (event.target == modal) {
             modal.style.display = "none";
         }
     }
-});
 
-document.addEventListener('DOMContentLoaded', function() {
-    const convertForm = document.getElementById('convertForm');
     const generateOdooButton = document.getElementById('generateOdooButton');
     const categoryModal = document.getElementById('categoryModal');
     const categoryForm = document.getElementById('categoryForm');
-    const convertErrorMessage = document.getElementById('convertErrorMessage');
 
     generateOdooButton.addEventListener('click', function(e) {
         e.preventDefault();
@@ -175,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('primaryCategory', document.getElementById('primaryCategory').value);
         formData.append('secondaryCategory', document.getElementById('secondaryCategory').value);
         formData.append('tertiaryCategory', document.getElementById('tertiaryCategory').value);
+        formData.append('output_format', convertOutputFormatSelect.value);
 
         fetch('/convert_to_odoo', {
             method: 'POST',
@@ -190,7 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'odoo_inventory.csv';
+            const fileExtension = convertOutputFormatSelect.value === 'xlsx' ? 'xlsx' : 'csv';
+            a.download = `odoo_inventory.${fileExtension}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -202,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Close the modal if the user clicks outside of it
+    // Close the category modal if the user clicks outside of it
     window.onclick = function(event) {
         if (event.target == categoryModal) {
             categoryModal.style.display = "none";

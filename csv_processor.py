@@ -2,7 +2,7 @@ import csv
 import io
 import re
 import traceback
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 
 
 # Input size map (unchanged)
@@ -152,23 +152,23 @@ def convert_to_odoo(file_content, file_type, primary_category='', secondary_cate
         category_external_id += f"_{tertiary_category.lower()}"
 
     for row in reader:
-        if int(row['Stock']) == 0:
+        if int(row.get('Stock', 0)) == 0:
             continue
 
-        product_name = row['Product']
-        color = row['Color']
-        size = row['Size']
-        sku = row['Item SKU']
-        price = row['Price']
-        barcode = row['GTIN']
-        mpn = row['MPN']
-        status = row['Status']
-        brand = row['Brand']
-        gender = row['Gender']
-        suppliers = row['Suppliers']
+        product_name = row.get('Product', '')
+        color = row.get('Color', '')
+        size = row.get('Size', '')
+        sku = row.get('Item SKU', '')
+        price = row.get('Price', '')
+        barcode = row.get('GTIN', '')
+        mpn = row.get('MPN', '')
+        status = row.get('Status', '')
+        brand = row.get('Brand', '')
+        gender = row.get('Gender', '')
+        suppliers = row.get('Suppliers', '')
 
-        base_sku = sku.rsplit('-', 2)[0]
-        external_id = f"product_{sku.replace('-', '_')}"
+        base_sku = sku.rsplit('-', 2)[0] if sku else ''
+        external_id = f"product_{sku.replace('-', '_')}" if sku else ''
 
         new_row = {
             'External_ID': external_id,
@@ -178,26 +178,192 @@ def convert_to_odoo(file_content, file_type, primary_category='', secondary_cate
             'Product Category (External_ID)': category_external_id,
             'Barcode': barcode,
             'Supplier Product Code': mpn,
-            'Published': '1' if status.lower() == 'active' else '0',
+            'Published': '1' if status and status.lower() == 'active' else '0',
             'Color': color,
             'Size': size,
             'Sales Price': price,
-            'Wholesale Price': row['Wholesale Price'],
-            'Consignment Price': row['Consignment Price'],
-            'Cost': row['Cost'],
-            'Weight': row['Weight'],
-            'Package Length (cm)': '',  # You may want to add this information to your input CSV
-            'Package Width (cm)': '',  # You may want to add this information to your input CSV
-            'Package Height (cm)': '',  # You may want to add this information to your input CSV
+            'Wholesale Price': row.get('Wholesale Price', ''),
+            'Consignment Price': row.get('Consignment Price', ''),
+            'Cost': row.get('Cost', ''),
+            'Weight': row.get('Weight', ''),
+            'Package Length (cm)': '',
+            'Package Width (cm)': '',
+            'Package Height (cm)': '',
             'Brand': brand,
             'Gender': gender,
             'Suppliers': suppliers,
-            'Primary Supplier': suppliers,  # maybe update if in the future need more than one
-            'Description': ''  # You may want to add this information to your input CSV
+            'Primary Supplier': suppliers,
+            'Description': ''
         }
         writer.writerow(new_row)
 
     return output.getvalue()
+
+def convert_to_odoo_xlsx(file_content, file_type, primary_category='', secondary_category='', tertiary_category=''):
+    if file_type == 'csv':
+        input_file = io.StringIO(file_content.decode('utf-8-sig'))
+        reader = csv.DictReader(input_file)
+    elif file_type == 'xlsx':
+        wb = load_workbook(filename=io.BytesIO(file_content))
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        header = rows[0]
+        reader = [dict(zip(header, row)) for row in rows[1:]]
+    else:
+        raise ValueError("Unsupported file type")
+    
+    output_wb = Workbook()
+    output_ws = output_wb.active
+    output_ws.title = "Odoo Import"
+    
+    headers = [
+        'External_ID', 'base_sku', 'Internal Reference', 'Name', 'Product Category (External_ID)',
+        'Barcode', 'Supplier Product Code', 'Published', 'Color', 'Size', 'Sales Price', 'Wholesale Price', 'Consignment Price', 'Cost',
+        'Weight', 'Package Length (cm)', 'Package Width (cm)', 'Package Height (cm)', 'Brand',
+        'Gender', 'Suppliers', 'Primary Supplier', 'Description'
+    ]
+    output_ws.append(headers)
+
+    # Construct the category external ID
+    category_external_id = f"category_{primary_category.lower()}"
+    if secondary_category:
+        category_external_id += f"_{secondary_category.lower()}"
+    if tertiary_category:
+        category_external_id += f"_{tertiary_category.lower()}"
+
+    for row in reader:
+        if int(row.get('Stock', 0)) == 0:
+            continue
+
+        product_name = row.get('Product', '')
+        color = row.get('Color', '')
+        size = row.get('Size', '')
+        sku = row.get('Item SKU', '')
+        price = row.get('Price', '')
+        barcode = row.get('GTIN', '')
+        mpn = row.get('MPN', '')
+        status = row.get('Status', '')
+        brand = row.get('Brand', '')
+        gender = row.get('Gender', '')
+        suppliers = row.get('Suppliers', '')
+
+        base_sku = sku.rsplit('-', 2)[0] if sku else ''
+        external_id = f"product_{sku.replace('-', '_')}" if sku else ''
+
+        new_row = [
+            external_id,
+            base_sku,
+            sku,
+            f"{product_name} - {color} ({size})",
+            category_external_id,
+            barcode,
+            mpn,
+            '1' if status and status.lower() == 'active' else '0',
+            color,
+            size,
+            price,
+            row.get('Wholesale Price', ''),
+            row.get('Consignment Price', ''),
+            row.get('Cost', ''),
+            row.get('Weight', ''),
+            '',  # Package Length (cm)
+            '',  # Package Width (cm)
+            '',  # Package Height (cm)
+            brand,
+            gender,
+            suppliers,
+            suppliers,  # Primary Supplier
+            ''  # Description
+        ]
+        output_ws.append(new_row)
+
+    output = io.BytesIO()
+    output_wb.save(output)
+    output.seek(0)
+    return output
+
+def convert_to_odoo_xlsx(file_content, file_type, primary_category='', secondary_category='', tertiary_category=''):
+    if file_type == 'csv':
+        input_file = io.StringIO(file_content.decode('utf-8-sig'))
+        reader = csv.DictReader(input_file)
+    elif file_type == 'xlsx':
+        wb = load_workbook(filename=io.BytesIO(file_content))
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        header = rows[0]
+        reader = [dict(zip(header, row)) for row in rows[1:]]
+    else:
+        raise ValueError("Unsupported file type")
+    
+    output_wb = Workbook()
+    output_ws = output_wb.active
+    output_ws.title = "Odoo Import"
+    
+    headers = [
+        'External_ID', 'base_sku', 'Internal Reference', 'Name', 'Product Category (External_ID)',
+        'Barcode', 'Supplier Product Code', 'Published', 'Color', 'Size', 'Sales Price', 'Wholesale Price', 'Consignment Price', 'Cost',
+        'Weight', 'Package Length (cm)', 'Package Width (cm)', 'Package Height (cm)', 'Brand',
+        'Gender', 'Suppliers', 'Primary Supplier', 'Description'
+    ]
+    output_ws.append(headers)
+
+    # Construct the category external ID
+    category_external_id = f"category_{primary_category.lower()}"
+    if secondary_category:
+        category_external_id += f"_{secondary_category.lower()}"
+    if tertiary_category:
+        category_external_id += f"_{tertiary_category.lower()}"
+
+    for row in reader:
+        if int(row.get('Stock', 0)) == 0:
+            continue
+
+        product_name = row.get('Product', '')
+        color = row.get('Color', '')
+        size = row.get('Size', '')
+        sku = row.get('Item SKU', '')
+        price = row.get('Price', '')
+        barcode = row.get('GTIN', '')
+        mpn = row.get('MPN', '')
+        status = row.get('Status', '')
+        brand = row.get('Brand', '')
+        gender = row.get('Gender', '')
+        suppliers = row.get('Suppliers', '')
+
+        base_sku = sku.rsplit('-', 2)[0] if sku else ''
+        external_id = f"product_{sku.replace('-', '_')}" if sku else ''
+
+        new_row = [
+            external_id,
+            base_sku,
+            sku,
+            f"{product_name} - {color} ({size})",
+            category_external_id,
+            barcode,
+            mpn,
+            '1' if status and status.lower() == 'active' else '0',
+            color,
+            size,
+            price,
+            row.get('Wholesale Price', ''),
+            row.get('Consignment Price', ''),
+            row.get('Cost', ''),
+            row.get('Weight', ''),
+            '',  # Package Length (cm)
+            '',  # Package Width (cm)
+            '',  # Package Height (cm)
+            brand,
+            gender,
+            suppliers,
+            suppliers,  # Primary Supplier
+            ''  # Description
+        ]
+        output_ws.append(new_row)
+
+    output = io.BytesIO()
+    output_wb.save(output)
+    output.seek(0)
+    return output
 
 def generate_csv(processed_data):
     try:
@@ -284,3 +450,48 @@ def get_initial_product_info_excel(file_content, sheet_name=None):
         return product_name, product_sku_base
     except Exception as e:
         raise Exception(f"Error getting initial product info from Excel: {str(e)}")
+    
+def generate_xlsx(processed_data):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Processed Inventory"
+    
+    headers = ['Product', 'Item', 'Item SKU', 'Color', 'Size', 'Stock', 'MPN', 'GTIN', 'Price', 'Wholesale Price', 'Consignment Price', 'Cost', 'Weight', 'Status', 'Brand', 'Gender', 'Suppliers']
+    ws.append(headers)
+    
+    for product_sku, product_data in processed_data.items():
+        product = product_data['Product']
+        color = product_data['Color']
+        brand = product_data['Brand']
+        gender = product_data['Gender']
+        suppliers = product_data['Suppliers']
+        wholesale_price = product_data['WholesalePrice']
+        consignment_price = product_data['ConsignmentPrice']
+        cost = product_data['Cost']
+        weight = product_data['Weight']
+        for item_sku, item_data in product_data['Items'].items():
+            item = f"{product} {color} {item_data['Size']}"
+            ws.append([
+                product,
+                item,
+                item_sku,
+                color,
+                item_data['FullSize'],
+                item_data['Stock'],
+                item_data['MPN'],
+                item_data['GTIN'],
+                item_data['Price'],
+                wholesale_price,
+                consignment_price,
+                cost,
+                weight,
+                item_data['Status'],
+                brand,
+                gender,
+                suppliers
+            ])
+    
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output

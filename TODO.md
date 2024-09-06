@@ -4,7 +4,7 @@ Are 0 stock items in original csv going to be restocked? Currently, the Odoo gen
 
 Breaking Bugs/Missing:
 
-Add Wholesale Price to both Odoo and the Transformer
+Add Wholesale Price to Odoo
 
 Create the Stock Move component
 
@@ -14,8 +14,6 @@ When xlsx , the get_product_info funct is not correct. Gives wrong values on mod
 
 
 Future Improvements:
-Export in xlsx as well
-
 
 
 Future Big Features:

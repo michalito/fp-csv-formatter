@@ -1,10 +1,12 @@
 from flask import Flask, request, send_file, render_template, jsonify
-from csv_processor import process_file, generate_csv, get_initial_product_info, convert_to_odoo, get_excel_sheet_names
+from csv_processor import process_file, generate_csv, get_initial_product_info, convert_to_odoo, get_excel_sheet_names, generate_xlsx, convert_to_odoo_xlsx
 import io
 import os
 import traceback
 import logging
 import mimetypes
+from openpyxl import Workbook
+
 
 app = Flask(__name__)
 
@@ -127,14 +129,26 @@ def process():
                 return jsonify({'error': f'Unsupported file type: {file_type}'}), 400
             try:
                 processed_data = process_file(file_content, file_type, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers, sheet_name)
-                output_csv = generate_csv(processed_data)
+                output_format = request.form.get('output_format', 'csv')
                 
-                return send_file(
-                    io.BytesIO(output_csv.encode()),
-                    mimetype='text/csv',
-                    as_attachment=True,
-                    download_name='processed_inventory.csv'
-                )
+                if output_format == 'csv':
+                    output_csv = generate_csv(processed_data)
+                    return send_file(
+                        io.BytesIO(output_csv.encode()),
+                        mimetype='text/csv',
+                        as_attachment=True,
+                        download_name='processed_inventory.csv'
+                    )
+                elif output_format == 'xlsx':
+                    output_xlsx = generate_xlsx(processed_data)
+                    return send_file(
+                        output_xlsx,
+                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        as_attachment=True,
+                        download_name='processed_inventory.xlsx'
+                    )
+                else:
+                    return jsonify({'error': 'Unsupported output format'}), 400
             except Exception as e:
                 app.logger.error(f"Error processing file: {str(e)}")
                 app.logger.error(traceback.format_exc())
@@ -164,14 +178,25 @@ def convert_to_odoo_route():
             if file_type not in ['csv', 'xlsx']:
                 return jsonify({'error': 'Unsupported file type'}), 400
             try:
-                odoo_csv = convert_to_odoo(file_content, file_type, primary_category, secondary_category, tertiary_category)
-                
-                return send_file(
-                    io.BytesIO(odoo_csv.encode()),
-                    mimetype='text/csv',
-                    as_attachment=True,
-                    download_name='odoo_inventory.csv'
-                )
+                output_format = request.form.get('output_format', 'csv')
+                if output_format == 'csv':
+                    odoo_csv = convert_to_odoo(file_content, file_type, primary_category, secondary_category, tertiary_category)
+                    return send_file(
+                        io.BytesIO(odoo_csv.encode()),
+                        mimetype='text/csv',
+                        as_attachment=True,
+                        download_name='odoo_inventory.csv'
+                    )
+                elif output_format == 'xlsx':
+                    odoo_xlsx = convert_to_odoo_xlsx(file_content, file_type, primary_category, secondary_category, tertiary_category)
+                    return send_file(
+                        odoo_xlsx,
+                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        as_attachment=True,
+                        download_name='odoo_inventory.xlsx'
+                    )
+                else:
+                    return jsonify({'error': 'Unsupported output format'}), 400
             except Exception as e:
                 app.logger.error(f"Error converting to Odoo format: {str(e)}")
                 app.logger.error(traceback.format_exc())
