@@ -9,6 +9,55 @@ document.addEventListener('DOMContentLoaded', function() {
     const sheetSelect = document.getElementById('sheetSelect');
     const outputFormatSelect = document.getElementById('outputFormat');
     const convertOutputFormatSelect = document.getElementById('convertOutputFormat');
+    const stockMoveForm = document.getElementById('stockMoveForm');
+    const generateStockMoveButton = document.getElementById('generateStockMoveButton');
+    const locationModal = document.getElementById('locationModal');
+    const locationForm = document.getElementById('locationForm');
+    const stockMoveErrorMessage = document.getElementById('stockMoveErrorMessage');
+
+    generateStockMoveButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        locationModal.style.display = 'block';
+    });
+
+    locationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(stockMoveForm);
+        formData.append('location', document.getElementById('locationSelect').value);
+
+        fetch('/generate_stock_move', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err; });
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const fileExtension = document.getElementById('stockMoveOutputFormat').value;
+            a.download = `odoo_stock_move.${fileExtension}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            locationModal.style.display = 'none';
+        })
+        .catch(error => {
+            stockMoveErrorMessage.textContent = error.error || 'An error occurred';
+            locationModal.style.display = 'none';
+        });
+    });
+
+    // Close the location modal if the user clicks outside of it
+    window.onclick = function(event) {
+        if (event.target == locationModal) {
+            locationModal.style.display = "none";
+        }
+    }
 
     function displayError(message) {
         errorMessage.textContent = message;

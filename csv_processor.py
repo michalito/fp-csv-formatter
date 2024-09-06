@@ -1,6 +1,7 @@
 import csv
 import io
 import re
+import pandas as pd
 import traceback
 from openpyxl import load_workbook, Workbook
 
@@ -495,3 +496,30 @@ def generate_xlsx(processed_data):
     wb.save(output)
     output.seek(0)
     return output
+
+def generate_stock_move(file_content, file_type, location):
+    if file_type == 'csv':
+        df = pd.read_csv(io.StringIO(file_content.decode('utf-8-sig')))
+    elif file_type == 'xlsx':
+        df = pd.read_excel(io.BytesIO(file_content))
+    else:
+        raise ValueError("Unsupported file type")
+
+    stock_move_data = []
+
+    for _, row in df.iterrows():
+        if int(row['Stock']) > 0:
+            item_sku = row['Item SKU']
+            stock_move_data.append({
+                'external_id': f"stock_{item_sku.replace('-', '_')}",
+                'Product/external_id': f"product_{item_sku.replace('-', '_')}",
+                'Product': item_sku,
+                'Location': location,
+                'Quantity (On Hand)': 0,
+                'Counted Quantity': int(row['Stock']),
+                'Difference': 0,
+                'Scheduled Date': '',
+                'Assigned To': 'Administrator'
+            })
+
+    return pd.DataFrame(stock_move_data)

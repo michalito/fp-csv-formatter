@@ -1,10 +1,11 @@
 from flask import Flask, request, send_file, render_template, jsonify
-from csv_processor import process_file, generate_csv, get_initial_product_info, convert_to_odoo, get_excel_sheet_names, generate_xlsx, convert_to_odoo_xlsx
+from csv_processor import process_file, generate_csv, get_initial_product_info, convert_to_odoo, get_excel_sheet_names, generate_xlsx, convert_to_odoo_xlsx, generate_stock_move
 import io
 import os
 import traceback
 import logging
 import mimetypes
+import pandas as pd
 from openpyxl import Workbook
 
 
@@ -204,6 +205,61 @@ def convert_to_odoo_route():
         return jsonify({'error': 'Invalid file'}), 400
     except Exception as e:
         app.logger.error(f"Unexpected error in convert_to_odoo: {str(e)}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+    
+@app.route('/generate_stock_move', methods=['POST'])
+def generate_stock_move_route():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part in the request'}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        if file:
+            file_content = file.read()
+            file_type = get_file_type(file.filename)
+            if file_type not in ['csv', 'xlsx']:
+                return jsonify({'error': 'Unsupported file type'}), 400
+            
+            location = request.form.get('location', '')
+            if not location:
+                return jsonify({'error': 'Location not provided'}), 400
+
+            try:
+                output_format = request.form.get('output_format', 'csv')
+                stock_move_data = generate_stock_move(file_content, file_type, location)
+                
+                if output_format == 'csv':
+                    output = io.StringIO()
+                    stock_move_data.to_csv(output, index=False)
+                    output.seek(0)
+                    return send_file(
+                        io.BytesIO(output.getvalue().encode()),
+                        mimetype='text/csv',
+                        as_attachment=True,
+                        download_name='odoo_stock_move.csv'
+                    )
+                elif output_format == 'xlsx':
+                    output = io.BytesIO()
+                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                        stock_move_data.to_excel(writer, index=False)
+                    output.seek(0)
+                    return send_file(
+                        output,
+                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        as_attachment=True,
+                        download_name='odoo_stock_move.xlsx'
+                    )
+                else:
+                    return jsonify({'error': 'Unsupported output format'}), 400
+            except Exception as e:
+                app.logger.error(f"Error generating stock move: {str(e)}")
+                app.logger.error(traceback.format_exc())
+                return jsonify({'error': f'Error generating stock move: {str(e)}'}), 400
+        return jsonify({'error': 'Invalid file'}), 400
+    except Exception as e:
+        app.logger.error(f"Unexpected error in generate_stock_move: {str(e)}")
         app.logger.error(traceback.format_exc())
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
 
