@@ -15,12 +15,12 @@ OUTPUT_SIZE_MAP = {'XS': 'XSmall', 'SM': 'Small', 'MD': 'Medium', 'LG': 'Large',
 REVERSE_OUTPUT_SIZE_MAP = {v: k for k, v in OUTPUT_SIZE_MAP.items()}
 
 
-def process_file(file_content, file_type, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name=None):
+def process_file(file_content, file_type, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers, sheet_name=None):
     try:
         if file_type == 'csv':
-            return process_csv(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers)
+            return process_csv(file_content, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers)
         elif file_type == 'xlsx':
-            return process_excel(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name)
+            return process_excel(file_content, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers, sheet_name)
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
     except Exception as e:
@@ -28,11 +28,11 @@ def process_file(file_content, file_type, product_name, product_sku_base, defaul
         traceback.print_exc()
         raise
     
-def process_csv(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers):
+def process_csv(file_content, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers):
     reader = csv.DictReader(io.StringIO(file_content.decode('utf-8-sig')))
-    return process_data(reader, product_name, product_sku_base, default_price, brand, gender, suppliers)
+    return process_data(reader, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers)
 
-def process_excel(file_content, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name=None):
+def process_excel(file_content, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers, sheet_name=None):
     wb = load_workbook(filename=io.BytesIO(file_content))
     
     if sheet_name:
@@ -45,9 +45,9 @@ def process_excel(file_content, product_name, product_sku_base, default_price, b
     rows = list(ws.iter_rows(values_only=True))
     header = rows[0]
     reader = [dict(zip(header, row)) for row in rows[1:]]
-    return process_data(reader, product_name, product_sku_base, default_price, brand, gender, suppliers)
+    return process_data(reader, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers)
 
-def process_data(reader, product_name, product_sku_base, default_price, brand, gender, suppliers):
+def process_data(reader, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers):
     try:
         processed_data = {}
         current_product = None
@@ -63,15 +63,20 @@ def process_data(reader, product_name, product_sku_base, default_price, brand, g
                 current_product = product_sku
                 current_price = row['Price'].replace('€', '').strip()
                 
-                if current_product not in processed_data:
-                    processed_data[current_product] = {
-                        'Product': product_name,
-                        'Color': color,
-                        'Brand': brand,
-                        'Gender': gender,
-                        'Suppliers': suppliers,
-                        'Items': {}
-                    }
+            if current_product not in processed_data:
+                processed_data[current_product] = {
+                    'Product': product_name,
+                    'Color': color,
+                    'Brand': brand,
+                    'Gender': gender,
+                    'Suppliers': suppliers,
+                    'WholesalePrice': wholesale_price,
+                    'ConsignmentPrice': consignment_price,
+                    'Cost': cost,
+                    'Weight': weight,
+                    'Items': {}
+                }
+            
             else:
                 # This is an item row
                 size_identifier = product_sku.split('-')[-1]
@@ -113,6 +118,7 @@ def process_data(reader, product_name, product_sku_base, default_price, brand, g
                     }
         
         return processed_data
+    
     except Exception as e:
         raise Exception(f"Error processing data: {str(e)}")
     
@@ -132,7 +138,7 @@ def convert_to_odoo(file_content, file_type, primary_category='', secondary_cate
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=[
         'External_ID', 'base_sku', 'Internal Reference', 'Name', 'Product Category (External_ID)',
-        'Barcode', 'Supplier Product Code', 'Published', 'Color', 'Size', 'Sales Price', 'Cost',
+        'Barcode', 'Supplier Product Code', 'Published', 'Color', 'Size', 'Sales Price', 'Wholesale Price', 'Consignment Price', 'Cost',
         'Weight', 'Package Length (cm)', 'Package Width (cm)', 'Package Height (cm)', 'Brand',
         'Gender', 'Suppliers', 'Primary Supplier', 'Description'
     ])
@@ -176,8 +182,10 @@ def convert_to_odoo(file_content, file_type, primary_category='', secondary_cate
             'Color': color,
             'Size': size,
             'Sales Price': price,
-            'Cost': '',  # You may want to add this information to your input CSV
-            'Weight': '',  # You may want to add this information to your input CSV
+            'Wholesale Price': row['Wholesale Price'],
+            'Consignment Price': row['Consignment Price'],
+            'Cost': row['Cost'],
+            'Weight': row['Weight'],
             'Package Length (cm)': '',  # You may want to add this information to your input CSV
             'Package Width (cm)': '',  # You may want to add this information to your input CSV
             'Package Height (cm)': '',  # You may want to add this information to your input CSV
@@ -196,7 +204,7 @@ def generate_csv(processed_data):
         output = io.StringIO()
         writer = csv.writer(output)
         
-        writer.writerow(['Product', 'Item', 'Item SKU', 'Color', 'Size', 'Stock', 'MPN', 'GTIN', 'Price', 'Status', 'Brand', 'Gender', 'Suppliers'])
+        writer.writerow(['Product', 'Item', 'Item SKU', 'Color', 'Size', 'Stock', 'MPN', 'GTIN', 'Price', 'Wholesale Price', 'Consignment Price', 'Cost', 'Weight', 'Status', 'Brand', 'Gender', 'Suppliers'])
         
         for product_sku, product_data in processed_data.items():
             product = product_data['Product']
@@ -204,6 +212,10 @@ def generate_csv(processed_data):
             brand = product_data['Brand']
             gender = product_data['Gender']
             suppliers = product_data['Suppliers']
+            wholesale_price = product_data['WholesalePrice']
+            consignment_price = product_data['ConsignmentPrice']
+            cost = product_data['Cost']
+            weight = product_data['Weight']
             for item_sku, item_data in product_data['Items'].items():
                 item = f"{product} {color} {item_data['Size']}"
                 writer.writerow([
@@ -216,6 +228,10 @@ def generate_csv(processed_data):
                     item_data['MPN'],
                     item_data['GTIN'],
                     item_data['Price'],
+                    wholesale_price,
+                    consignment_price,
+                    cost,
+                    weight,
                     item_data['Status'],
                     brand,
                     gender,

@@ -87,6 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.set('product_name', document.getElementById('product_name').value);
         formData.set('product_sku_base', document.getElementById('product_sku_base').value);
         formData.set('default_price', document.getElementById('default_price').value);
+        formData.set('wholesale_price', document.getElementById('wholesale_price').value);
+        formData.set('consignment_price', document.getElementById('consignment_price').value);
+        formData.set('cost', document.getElementById('cost').value);
+        formData.set('weight', document.getElementById('weight').value);
         formData.set('brand', document.getElementById('brand').value);
         formData.set('gender', document.getElementById('gender').value);
         formData.set('suppliers', document.getElementById('suppliers').value);

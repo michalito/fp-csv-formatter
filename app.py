@@ -105,6 +105,10 @@ def process():
         product_name = request.form.get('product_name')
         product_sku_base = request.form.get('product_sku_base')
         default_price = request.form.get('default_price', '0')
+        wholesale_price = request.form.get('wholesale_price', '0')
+        consignment_price = request.form.get('consignment_price', '0')
+        cost = request.form.get('cost', '0')
+        weight = request.form.get('weight', '0')
         brand = request.form.get('brand', '')
         gender = request.form.get('gender', '')
         suppliers = request.form.get('suppliers', '')
@@ -122,7 +126,7 @@ def process():
             if file_type not in ['csv', 'xlsx']:
                 return jsonify({'error': f'Unsupported file type: {file_type}'}), 400
             try:
-                processed_data = process_file(file_content, file_type, product_name, product_sku_base, default_price, brand, gender, suppliers, sheet_name)
+                processed_data = process_file(file_content, file_type, product_name, product_sku_base, default_price, wholesale_price, consignment_price, cost, weight, brand, gender, suppliers, sheet_name)
                 output_csv = generate_csv(processed_data)
                 
                 return send_file(
@@ -141,7 +145,7 @@ def process():
         app.logger.error(f"Unexpected error in process: {str(e)}")
         app.logger.error(traceback.format_exc())
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
-
+    
 @app.route('/convert_to_odoo', methods=['POST'])
 def convert_to_odoo_route():
     primary_category = request.form.get('primaryCategory', '')
